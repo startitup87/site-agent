@@ -149,4 +149,42 @@ public function install_and_activate_plugins_from_context($context_path = __DIR_
         }
         return implode("\n", $results);
     }
+// Save OpenAI API key to WordPress options
+    public function save_openai_api_key($api_key) {
+        return update_option('wp_site_agent_openai_api_key', $api_key);
+    }
+
+    // Retrieve OpenAI API key from WordPress options
+    public function get_openai_api_key() {
+        return get_option('wp_site_agent_openai_api_key', '');
+    }
+
+    // Test OpenAI API key by making a simple request
+    public function test_openai_api_key($api_key = null) {
+        if (!$api_key) {
+            $api_key = $this->get_openai_api_key();
+        }
+        if (empty($api_key)) {
+            return 'No OpenAI API key set.';
+        }
+        $url = 'https://api.openai.com/v1/models';
+        $args = [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type'  => 'application/json',
+            ],
+            'timeout' => 15,
+        ];
+        $response = wp_remote_get($url, $args);
+        if (is_wp_error($response)) {
+            return 'Request error: ' . $response->get_error_message();
+        }
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code === 200) {
+            return 'OpenAI API key is valid.';
+        } else {
+            $body = wp_remote_retrieve_body($response);
+            return 'OpenAI API test failed. HTTP ' . $code . ': ' . $body;
+        }
+    }
 }
