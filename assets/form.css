@@ -1,0 +1,6 @@
+/* Optional styling for Site Agent multi-step form */
+.form-step { display: none; margin-bottom: 2em; }
+.form-step[data-step="1"] { display: block; }
+#site-agent-form input, #site-agent-form select, #site-agent-form textarea { display: block; margin: 0.5em 0; }
+#site-agent-form button { margin: 0.5em 0.25em; }
+#site-agent-status { margin-top: 1em; }
