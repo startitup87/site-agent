@@ -112,4 +112,41 @@ class WP_Site_Agent_Site_Builder {
                 ];
         }
     }
+public function install_and_activate_plugins_from_context($context_path = __DIR__ . '/context.json') {
+        if (!file_exists($context_path)) {
+            return 'Context file not found.';
+        }
+        $context = json_decode(file_get_contents($context_path), true);
+        $niche = isset($context['niche']) ? $context['niche'] : '';
+        $site_type = isset($context['site_type']) ? $context['site_type'] : '';
+        $template = $this->get_site_template($niche ?: $site_type);
+        if (empty($template['recommended_plugins'])) {
+            return 'No recommended plugins for this context.';
+        }
+        $results = [];
+        include_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+        include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        include_once ABSPATH . 'wp-admin/includes/plugin.php';
+        foreach ($template['recommended_plugins'] as $plugin_name) {
+            $api = plugins_api('plugin_information', ['slug' => sanitize_title($plugin_name), 'fields' => ['sections' => false]]);
+            if (is_wp_error($api) || empty($api->slug)) {
+                $results[] = "Could not find plugin: $plugin_name";
+                continue;
+            }
+            $upgrader = new Plugin_Upgrader();
+            $install_result = $upgrader->install($api->download_link);
+            if (is_wp_error($install_result)) {
+                $results[] = "Failed to install $plugin_name: " . $install_result->get_error_message();
+                continue;
+            }
+            $plugin_file = $api->slug . '/' . $api->slug . '.php';
+            if (!is_plugin_active($plugin_file)) {
+                activate_plugin($plugin_file);
+                $results[] = "Installed and activated: $plugin_name";
+            } else {
+                $results[] = "$plugin_name already active.";
+            }
+        }
+        return implode("\n", $results);
+    }
 }
